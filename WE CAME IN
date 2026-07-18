@@ -1,0 +1,58 @@
+-- Delta Compatible FPS Booster / Optimizer
+
+-- 1. Uncap FPS
+if setfpscap then
+    setfpscap(999)
+else
+    print("FPS capping not supported by this executor, but optimizations will still apply!")
+end
+
+-- 2. Services
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local Terrain = Workspace:FindFirstChildOfClass("Terrain")
+
+-- 3. Optimize Terrain
+if Terrain then
+    Terrain.WaterWaveSize = 0
+    Terrain.WaterWaveSpeed = 0
+    Terrain.WaterReflectance = 0
+    Terrain.WaterTransparency = 0
+end
+
+-- 4. Strip Lighting & Shadows
+Lighting.GlobalShadows = false
+Lighting.FogEnd = 9e9
+Lighting.Brightness = 1
+
+-- Remove Screen/Post-Processing Effects
+for _, effect in pairs(Lighting:GetChildren()) do
+    if effect:IsA("PostEffect") or effect:IsA("BloomEffect") or effect:IsA("BlurEffect") or effect:IsA("SunRaysEffect") or effect:IsA("ColorCorrectionEffect") then
+        effect:Destroy()
+    end
+end
+
+-- 5. Material & Texture Stripper Function
+local function optimizePart(part)
+    if part:IsA("BasePart") and not part:IsA("Terrain") then
+        part.Material = Enum.Material.SmoothPlastic
+        part.Reflectance = 0
+    elseif part:IsA("Decal") or part:IsA("Texture") then
+        part:Destroy()
+    elseif part:IsA("SpecialMesh") then
+        part.TextureId = ""
+    end
+end
+
+-- Run on existing instances
+for _, descendant in pairs(Workspace:GetDescendants()) do
+    optimizePart(descendant)
+end
+
+-- Monitor for new instances (prevents newly spawned items/maps from lagging)
+Workspace.DescendantAdded:Connect(function(descendant)
+    task.wait() -- Brief pause to ensure the object is fully instantiated
+    optimizePart(descendant)
+end)
+
+print("FPS Booster Loaded Successfully!")
