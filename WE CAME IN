@@ -1,4 +1,4 @@
--- Delta Compatible FPS Booster / Optimizer
+-- Delta Compatible FPS Booster (Character & Accessory Friendly)
 
 -- 1. Uncap FPS
 if setfpscap then
@@ -10,6 +10,7 @@ end
 -- 2. Services
 local Workspace = game:GetService("Workspace")
 local Lighting = game:GetService("Lighting")
+local Players = game:GetService("Players")
 local Terrain = Workspace:FindFirstChildOfClass("Terrain")
 
 -- 3. Optimize Terrain
@@ -32,8 +33,30 @@ for _, effect in pairs(Lighting:GetChildren()) do
     end
 end
 
--- 5. Material & Texture Stripper Function
+-- 5. Protection Check: Ensures we don't touch Players or their Accessories
+local function isPlayerOrAccessory(obj)
+    local current = obj
+    while current and current ~= Workspace do
+        -- Check if it belongs to an Accessory
+        if current:IsA("Accessory") or current:IsA("Accoutrement") then
+            return true
+        end
+        -- Check if it belongs to a Player Character Model
+        if current:IsA("Model") and Players:GetPlayerFromCharacter(current) then
+            return true
+        end
+        current = current.Parent
+    end
+    return false
+end
+
+-- 6. Material & Texture Stripper Function
 local function optimizePart(part)
+    -- Skip entirely if this belongs to a player or accessory
+    if isPlayerOrAccessory(part) then 
+        return 
+    end
+
     if part:IsA("BasePart") and not part:IsA("Terrain") then
         part.Material = Enum.Material.SmoothPlastic
         part.Reflectance = 0
@@ -44,15 +67,15 @@ local function optimizePart(part)
     end
 end
 
--- Run on existing instances
+-- Run on existing map geometry
 for _, descendant in pairs(Workspace:GetDescendants()) do
     optimizePart(descendant)
 end
 
--- Monitor for new instances (prevents newly spawned items/maps from lagging)
+-- Monitor for map changes (ignoring new player spawns automatically via the check)
 Workspace.DescendantAdded:Connect(function(descendant)
     task.wait() -- Brief pause to ensure the object is fully instantiated
     optimizePart(descendant)
 end)
 
-print("FPS Booster Loaded Successfully!")
+print("Player-Safe FPS Booster Loaded Successfully!")
